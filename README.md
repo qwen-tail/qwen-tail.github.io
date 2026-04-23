@@ -4,109 +4,42 @@ Site qwen-tail.github.io
 
 ## Usefull scripts
 
+### Git init or add and commit
+
+```sh
+#!/usr/bin/env bash
+
+# 1. Проверяем, находимся ли мы уже внутри git-репозитория
+if ! git rev-parse --is-inside-work-tree &>/dev/null; then
+    echo "Git-репозиторий не найден. Выполняется инициализация..."
+    git init
+fi
+
+# 2. Добавляем все изменения в индекс
+git add .
+
+# 3. Определяем сообщение коммита:
+#    Если передан $1 → используем его
+#    Если $1 пустой или не передан → берём значение по умолчанию
+COMMIT_MSG="${1:-Auto commit}"
+
+# 4. Проверяем, есть ли что коммитить (чтобы избежать ошибки "nothing to commit")
+if [[ -z $(git status --porcelain) ]]; then
+    echo "Нет изменений для коммита. Пропускаем."
+    exit 0
+fi
+
+# 5. Создаём коммит
+git commit -m "$COMMIT_MSG"
+
+echo "✅ Успешно. Коммит создан с сообщением: '$COMMIT_MSG'"
+
+```
+
 ### Универсальное копирование в буфер обмена на линукс
 
 
-
-```sh
-#!/usr/bin/env bash
-
-clip2() {
-    # 1. Надёжная проверка наличия xclip
-    if ! command -v xclip &>/dev/null; then
-        echo "Ошибка: xclip не установлен." >&2
-        exit 1
-    fi
-
-    # 2. Обработка ввода
-    if (( $# == 0 )); then
-        # Чтение из stdin (пайп)
-        xclip -selection clipboard -i
-    else
-        # Чтение из аргументов (сохраняет пробелы и спецсимволы)
-        printf "%s" "$*" | xclip -selection clipboard -i
-    fi
-
-    echo "✅ Текст скопирован в буфер обмена."
-}
-
-# 3. Вызов функции со всеми переданными аргументами
-clip2 "$@"
-
-```
-
-### midnight style
-
-мой скрипт изначально называется mc1
-
-запуск midnight commander
-каждый раз со случаной доступной темой
-(темы сканируются из папки /usr/share)
-для пользователя
-или для root (red cursor)
-
-пример скрипта:
-```sh
-#!/usr/bin/env bash
-
-run_mc1() {
-
-    local who_am=$(whoami)
-    # echo $who_am
-
-    # !is_root
-    if [ $who_am == "user" ]; then
-        # echo "not root"
-
-        # https://www.ing.iac.es/~docs/external/bash/abs-guide/randomvar.html
-        local number=$(expr 0 + $RANDOM % 20)
-        # https://opensource.com/article/18/5/you-dont-know-bash-intro-bash-arrays
-        local allThreads=(darkfar
-            dark
-            featured-plus
-            gotar
-            gray-green-purple256
-            gray-orange-blue256
-            julia256
-            modarcon16-defbg-thin
-            modarcon16
-            modarcon16-thin
-            modarin256-defbg-thin
-            modarin256
-            modarin256-thin
-            nicedark
-            sand256
-            seasons-autumn16M
-            seasons-spring16M
-            seasons-summer16M
-            seasons-winter16M
-            xoria256
-            yadt256-defbg)
-        # mc -S ${allThreads[number]}
-        echo "${allThreads[number]}"
-        mc -S ${allThreads[number]}
-
-    else
-
-        # https://www.ing.iac.es/~docs/external/bash/abs-guide/randomvar.html
-        local number=$(expr 0 + $RANDOM % 7)
-        # https://opensource.com/article/18/5/you-dont-know-bash-intro-bash-arrays
-        local allThreads=(modarcon16root-defbg modarcon16root-defbg-thin modarcon16root modarcon16root-thin modarin256root-defbg modarin256root-defbg-thin modarin256root modarin256root-thin)
-
-        # echo "mc -S ${allThreads[number]}"
-        echo "${allThreads[number]}"
-        sudo mc -S ${allThreads[number]}
-
-    fi
-}
-
-run_mc1
-
-```
-
-нужно чтобы команды mcedit
-также реагировал на разные темы
-или по умолчания mcedit -S gotar $1
+### midnight random skins
 
 ### timg
 
@@ -116,8 +49,9 @@ run_mc1
 /usr/local/bin/timg -g100x50 "$1"
 ```
 
+### Markdown viewr mdm
+
+### grc highlight
+### color man pages
 ### 
 
-### midnight style
-### midnight style
-### midnight style

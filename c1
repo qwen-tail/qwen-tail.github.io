@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-clip2() {
+сlip1() {
     # 1. Надёжная проверка наличия xclip
     if ! command -v xclip &>/dev/null; then
         echo "Ошибка: xclip не установлен." >&2
@@ -20,5 +20,5 @@ clip2() {
 }
 
 # 3. Вызов функции со всеми переданными аргументами
-clip2 "$@"
+сlip1 "$@"
 

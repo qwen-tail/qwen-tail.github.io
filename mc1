@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+# mc1 — Midnight Commander с рандомным скином + обёртка над mcedit
+
+set -euo pipefail
+
+# Пути и константы
+SKINS_DIR="/usr/share/mc/skins"
+DEFAULT_SKIN="gotar"              # Фоллбэк, если не найдено скинов
+EXCLUDE_PATTERNS=("default" "none") # Скины, которые НЕ включать в рандом
+
+# 1. Функция получения списка доступных скинов
+get_available_skins() {
+    local -a skins=()
+    local pattern="$1"  # "root" или "user"
+
+    # Сканируем папку, если она существует
+    if [[ -d "$SKINS_DIR" ]]; then
+        for skin_file in "$SKINS_DIR"/*.ini; do
+            [[ -f "$skin_file" ]] || continue
+            local skin_name
+            skin_name=$(basename "$skin_file" .ini)
+
+            # Исключаем нежелательные скины по паттернам
+            local skip=0
+            for excl in "${EXCLUDE_PATTERNS[@]}"; do
+                [[ "$skin_name" == *"$excl"* ]] && skip=1 && break
+            done
+            (( skip )) && continue
+
+            # Фильтр по типу: root-скины содержат "root" в имени
+            if [[ "$pattern" == "root" ]]; then
+                [[ "$skin_name" == *"root"* ]] && skins+=("$skin_name")
+            else
+                [[ "$skin_name" != *"root"* ]] && skins+=("$skin_name")
+            fi
+        done
+    fi
+
+    # Возвращаем результат (через эхо, чтобы сохранить массив)
+    printf '%s\n' "${skins[@]}"
+}
+
+# 2. Выбор случайного элемента из массива
+pick_random() {
+    local -a items=("$@")
+    local count=${#items[@]}
+    
+    if (( count == 0 )); then
+        return 1
+    elif (( count == 1 )); then
+        echo "${items[0]}"
+    else
+        echo "${items[RANDOM % count]}"
+    fi
+}
+
+# 3. Основная логика запуска
+run_with_random_skin() {
+    local cmd="$1"  # mc или mcedit
+    shift           # Удаляем первый аргумент, оставляем только параметры пользователя
+
+    # Определяем, кто запускает: root или пользователь
+    local user_type="user"
+    [[ $(id -u) -eq 0 ]] && user_type="root"
+
+    # Получаем список подходящих скинов
+    local -a available_skins
+    mapfile -t available_skins < <(get_available_skins "$user_type")
+
+    # Выбираем скин: случайный из списка или дефолтный
+    local selected_skin
+    if (( ${#available_skins[@]} > 0 )); then
+        selected_skin=$(pick_random "${available_skins[@]}")
+    else
+        selected_skin="$DEFAULT_SKIN"
+        echo "⚠️ Скины не найдены, используется дефолтный: $selected_skin" >&2
+    fi
+
+    # Формируем и выполняем команду
+    local -a final_cmd=("$cmd" "-S" "$selected_skin")
+    
+    # Добавляем все переданные аргументы (файлы, пути, флаги)
+    if (( $# > 0 )); then
+        final_cmd+=("$@")
+    fi
+
+    # Отладочный вывод (можно закомментировать)
+    # echo "🎨 Запуск: ${final_cmd[*]} (skin: $selected_skin, user: $user_type)" >&2
+
+    exec "${final_cmd[@]}"
+}
+
+# 4. Точка входа: определяем, как нас вызвали
+case "$(basename "$0")" in
+    mc1|mc1.sh)
+        # Запуск Midnight Commander
+        run_with_random_skin mc "$@"
+        ;;
+    me1|me1.sh)
+        # Запуск mcedit с тем же принципом
+        run_with_random_skin mc -e "$@"
+        ;;
+    *)
+        # Если скрипт вызван как `mc1 edit file.txt` — запускаем mcedit
+        if [[ "${1:-}" == "edit" ]]; then
+            shift
+            run_with_random_skin mc -e "$@"
+        else
+            run_with_random_skin mc "$@"
+        fi
+        ;;
+esac
+
+
+# 1. Сохраните скрипт
+# sudo tee /usr/local/bin/mc1 > /dev/null << 'EOF'
+# [вставьте код скрипта выше]
+# EOF
+
+# # 2. Сделайте исполняемым
+# sudo chmod +x /usr/local/bin/mc1
+
+# # 3. Создайте символическую ссылку для mcedit-обёртки (опционально)
+# sudo ln -sf /usr/local/bin/mc1 /usr/local/bin/me1

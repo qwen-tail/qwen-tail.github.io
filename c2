@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# 1. Выбираем бэкенд буфера обмена
+if command -v wl-copy &>/dev/null; then
+    CP_CMD="wl-copy"
+elif command -v xclip &>/dev/null; then
+    CP_CMD="xclip -selection clipboard -i"
+else
+    echo "❌ Ошибка: не найден wl-copy (Wayland) или xclip (X11)" >&2
+    exit 1
+fi
+
+# 2. Парсим аргументы
+MIME=""
+INPUT=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -t|--type) MIME="$2"; shift 2 ;;
+        -h|--help) echo "Использование: $0 [-t MIME_TYPE] [ФАЙЛ]"; exit 0 ;;
+        *) INPUT="$1"; shift ;;
+    esac
+done
+
+# 3. Автоопределение MIME, если не указан
+if [[ -z "$MIME" ]]; then
+    if [[ -n "$INPUT" && -f "$INPUT" ]]; then
+        # Убираем charset, если он есть (xclip/wl-copy часто ругаются на ; charset=...)
+        MIME=$(file --mime-type -b "$INPUT" 2>/dev/null | cut -d';' -f1)
+        [[ -z "$MIME" || "$MIME" == "inode/x-empty" ]] && MIME="application/octet-stream"
+    else
+        MIME="text/plain"
+    fi
+fi
+
+# 4. Копируем в буфер
+if [[ -n "$INPUT" ]]; then
+    if [[ ! -f "$INPUT" ]]; then
+        echo "❌ Файл не найден: $INPUT" >&2; exit 1
+    fi
+    < "$INPUT" $CP_CMD -t "$MIME"
+else
+    # Читаем из stdin (пайп)
+    $CP_CMD -t "$MIME"
+fi
+
+echo "✅ Скопировано в буфер обмена (MIME: $MIME)"
