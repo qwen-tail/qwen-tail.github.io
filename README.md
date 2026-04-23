@@ -6,39 +6,32 @@ Site qwen-tail.github.io
 
 ### Универсальное копирование в буфер обмена на линукс
 
-clip2 buffer from stdin and as args
+
 
 ```sh
-#!/bin/env bash
+#!/usr/bin/env bash
 
-function clip2(){
-    # $# == 0 если число входных аргументов 0 то pipe
-    if (( $# == 0 )) ; then
-        cp /dev/stdin .xclip_temp
-        # cat .xclip_temp | sed
-#        tr -d '\n' < .xclip_temp_n > .xclip_temp
-        xclip -i .xclip_temp
-        xclip -sel clip .xclip_temp
-        rm .xclip_temp
-#        rm .xclip_temp_n
-    # иначе берем текст из аргементов
+clip2() {
+    # 1. Надёжная проверка наличия xclip
+    if ! command -v xclip &>/dev/null; then
+        echo "Ошибка: xclip не установлен." >&2
+        exit 1
+    fi
+
+    # 2. Обработка ввода
+    if (( $# == 0 )); then
+        # Чтение из stdin (пайп)
+        xclip -selection clipboard -i
     else
-        echo -n $1 | xclip -sel clip
-        echo -n $1 | xclip -i
-    fi    
+        # Чтение из аргументов (сохраняет пробелы и спецсимволы)
+        printf "%s" "$*" | xclip -selection clipboard -i
+    fi
+
+    echo "✅ Текст скопирован в буфер обмена."
 }
 
-# проверяем - установлена программа xclip или нет
-which xclip
-status=$?
-
-if [ $status -eq 0 ]
-then
-    clip2 $1
-    echo "Содержимое ввода скопированно в буфер обмена"
-else
-    echo "xclip - программа не установлена"; exit 0
-fi
+# 3. Вызов функции со всеми переданными аргументами
+clip2 "$@"
 
 ```
 
